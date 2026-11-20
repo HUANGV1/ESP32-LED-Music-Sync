@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LED Sync · Control</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="mast">
+        <div class="mast__brand">
+          <span class="mast__tag">LOCAL</span>
+          <h1>LED Sync</h1>
+          <p class="mast__sub">Audio + live tuning · <code>settings.local.json</code></p>
+        </div>
+        <div class="mast__actions">
+          <span class="runtime" id="runtime-status">audio …</span>
+          <span class="status" id="save-status">—</span>
+          <button type="button" class="btn btn--ghost" id="btn-reset">Reset to config.py</button>
+        </div>
+      </header>
+
+      <aside class="note">
+        <p>
+          Running <code>python dashboard_server.py</code> starts both the web UI and the
+          audio engine. Use <code>python main.py</code> if you only want lights with no UI.
+        </p>
+      </aside>
+
+      <main class="grid" id="controls"></main>
+    </div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

@@ -64,12 +64,26 @@ ESP32_IP = "your.esp.ip.here"
 
 ### 5. Run
 
+**Option A — audio only**
+
 ```powershell
 cd python
 python main.py
 ```
 
-When beat detection triggers, the terminal prints `BEAT` next to the RGB values.
+**Option B — dashboard + audio together**
+
+```powershell
+cd python
+pip install -r ..\requirements.txt
+python dashboard_server.py
+```
+
+Open [http://127.0.0.1:8765](http://127.0.0.1:8765). This starts the audio engine and the control UI. Sliders write `settings.local.json` and apply live.
+
+Do not run both `main.py` and `dashboard_server.py` at the same time.
+
+Use **Reset to config.py** in the UI to drop JSON overrides. Editing `config.py` still works as defaults.
 
 ### Optional: UDP RGB test (no audio)
 

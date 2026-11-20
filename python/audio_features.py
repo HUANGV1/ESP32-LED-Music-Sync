@@ -214,6 +214,31 @@ class AudioFeatureExtractor:
             beat=self.onset.update(bass),
         )
 
+    def apply_runtime_settings(self, settings: dict) -> None:
+        """Hot-reload tunables from the dashboard without resetting filter state."""
+        self.gain_loudness = float(settings["GAIN_LOUDNESS"])
+        self.attack = float(settings["ATTACK"])
+        self.release = float(settings["RELEASE"])
+
+        self.bass.gain = float(settings["GAIN_BASS"])
+        self.bass.attack = self.attack
+        self.bass.release = self.release
+
+        self.mid.gain = float(settings["GAIN_MID"])
+        self.mid.attack = self.attack
+        self.mid.release = self.release
+
+        self.treble.gain = float(settings["GAIN_TREBLE"])
+        self.treble.attack = self.attack
+        self.treble.release = self.release
+
+        onset = self.onset
+        onset.threshold_multiplier = float(settings["BEAT_THRESHOLD_MULTIPLIER"])
+        onset.min_delta = int(settings["BEAT_MIN_DELTA"])
+        onset.min_intensity = int(settings["BEAT_MIN_INTENSITY"])
+        onset.baseline_alpha = float(settings["BEAT_BASELINE_ALPHA"])
+        onset.cooldown_frames = int(settings["BEAT_COOLDOWN_FRAMES"])
+
     @staticmethod
     def _to_mono(audio_chunk: np.ndarray) -> np.ndarray:
         if audio_chunk.ndim == 1:

@@ -86,7 +86,7 @@ RELEASE = 0.85
 # BEAT_THRESHOLD_MULTIPLIER sets the relative jump needed over the baseline.
 # Higher = fewer beat triggers. Lower = more sensitive, possibly false hits.
 # Range: 1.05-2.0. Typical: 1.15-1.50.
-BEAT_THRESHOLD_MULTIPLIER = 1.30
+BEAT_THRESHOLD_MULTIPLIER = 1.35
 
 # BEAT_MIN_DELTA is the minimum absolute bass jump required, in 0-255 units.
 # Raise if the terminal shows BEAT too often on small bass wiggles.
@@ -96,7 +96,7 @@ BEAT_MIN_DELTA = 16
 # BEAT_MIN_INTENSITY ignores beat detection until bass is at least this strong.
 # Raise to avoid false beats in quiet sections; lower if real kicks are missed.
 # Range: 0-120. Typical: 10-40.
-BEAT_MIN_INTENSITY = 24
+BEAT_MIN_INTENSITY = 22
 
 # BEAT_BASELINE_ALPHA controls how slowly the local bass baseline adapts.
 # Higher = baseline changes slower, good for detecting sudden hits.
@@ -107,7 +107,7 @@ BEAT_BASELINE_ALPHA = 0.92
 # BEAT_COOLDOWN_FRAMES blocks another beat trigger for this many audio chunks.
 # At CHUNK_SIZE=2048, 4 frames is roughly 184 ms. Raise if double-triggering.
 # Range: 1-12. Typical: 3-6.
-BEAT_COOLDOWN_FRAMES = 4
+BEAT_COOLDOWN_FRAMES = 6
 
 # --- Lighting mode -----------------------------------------------------------
 
@@ -121,7 +121,7 @@ LIGHTING_MODE = "flow"
 # Higher = faster rainbow cycle. Lower = slower color drift.
 # Range: 5-180. Typical: 20-90.
 # Ignored when LIGHTING_MODE = "bands".
-COLOR_FLOW_SPEED = 60.0
+COLOR_FLOW_SPEED = 80.0
 
 # FLOW_BRIGHTNESS_CEILING caps baseline brightness in flow mode (0.0-1.0).
 # Lower = dimmer resting color and more room for beat flashes to stay on-hue.
@@ -160,7 +160,7 @@ LOUDNESS_FLOOR = 0.12
 #   50  ≈ 1.5x brighter same color
 #   100 ≈ 2.0x brighter same color
 # Range: 0-200. Typical: 50-140. Above ~200 usually just clips.
-BEAT_FLASH_INTENSITY = 100
+BEAT_FLASH_INTENSITY = 110
 
 # BEAT_FLASH_DECAY controls how quickly the beat flash fades each frame.
 # Lower = shorter/snappier flash. Higher = longer flash trail.

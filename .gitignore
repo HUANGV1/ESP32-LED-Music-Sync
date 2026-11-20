@@ -10,3 +10,6 @@ __pycache__/
 
 # Private Wi-Fi credentials (keep secrets.h.example in git)
 firmware/esp32_bass_led/LEDC_PWM/secrets.h
+
+# Dashboard runtime overrides (defaults remain in config.py)
+python/settings.local.json

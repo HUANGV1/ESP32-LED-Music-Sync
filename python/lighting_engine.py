@@ -124,6 +124,25 @@ class LightingEngine:
         )
         return red_f * 255.0, green_f * 255.0, blue_f * 255.0
 
+    def apply_runtime_settings(self, settings: dict, frame_seconds: float) -> None:
+        """Hot-reload display and beat-flash parameters."""
+        mode = str(settings["LIGHTING_MODE"]).lower().strip()
+        if mode not in {"bands", "flow"}:
+            mode = "bands"
+        self.mode = mode
+
+        self.hue_step = float(settings["COLOR_FLOW_SPEED"]) * frame_seconds
+        self.color_attack = float(settings["COLOR_ATTACK"])
+        self.color_release = float(settings["COLOR_RELEASE"])
+        self.color_deadzone = int(settings["COLOR_DEADZONE"])
+        self.loudness_floor = float(settings["LOUDNESS_FLOOR"])
+        self.flow_brightness_ceiling = max(
+            0.05,
+            min(1.0, float(settings["FLOW_BRIGHTNESS_CEILING"])),
+        )
+        self.beat_flash_intensity = int(settings["BEAT_FLASH_INTENSITY"])
+        self.beat_flash_decay = float(settings["BEAT_FLASH_DECAY"])
+
     def _smooth(self, current: float, target: float) -> float:
         alpha = self.color_attack if target > current else self.color_release
         return alpha * current + (1.0 - alpha) * target
