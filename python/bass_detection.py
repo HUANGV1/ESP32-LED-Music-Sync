@@ -7,8 +7,10 @@ Pipeline for each audio chunk:
   1. Convert stereo -> mono
   2. Bandpass-filter so only bass frequencies remain
   3. Measure energy of that bass signal (RMS)
-  4. Smooth the energy so the LED does not flicker too harshly
+  4. Smooth with attack/release so big hits stay punchy,
+     but small wiggles do not make the LED look jumpy
   5. Scale + clamp into 0..255 for the ESP32 PWM LED
+  6. Apply a small deadzone so tiny brightness changes are ignored
 """
 
 # NumPy does fast math on whole arrays of samples at once.
@@ -32,17 +34,29 @@ class BassDetector:
         low_hz: int,
         high_hz: int,
         gain: float,
-        smoothing: float,
+        attack: float,
+        release: float,
+        intensity_deadzone: int,
     ) -> None:
         # Sensitivity multiplier used later when mapping RMS -> 0..255.
         self.gain = gain
 
-        # How much of the previous RMS to keep when smoothing.
-        # See the formula in get_intensity().
-        self.smoothing = smoothing
+        # Weight kept from the previous value when bass rises.
+        # Lower = faster rise toward new louder values.
+        self.attack = attack
+
+        # Weight kept from the previous value when bass falls.
+        # Higher = slower fade, which removes small jumpy transitions.
+        self.release = release
+
+        # Ignore final brightness changes smaller than this.
+        self.intensity_deadzone = intensity_deadzone
 
         # Running/smoothed bass energy. Starts at silence.
         self.smoothed_rms = 0.0
+
+        # Last integer brightness we actually returned/sent.
+        self.last_intensity = 0
 
         """
         Design a 4th-order Butterworth bandpass filter.
@@ -100,21 +114,30 @@ class BassDetector:
         # Result is a single float representing "how strong is the bass".
         rms = float(np.sqrt(np.mean(np.square(bass))))
 
-        # Step 4: exponential moving average (EMA) smoothing.
-        # New smoothed value blends previous and current RMS:
-        #   smoothed = a * old + (1 - a) * new
-        # where a = self.smoothing
-        self.smoothed_rms = (
-            self.smoothing * self.smoothed_rms
-            + (1.0 - self.smoothing) * rms
-        )
+        # Step 4: asymmetric attack/release smoothing.
+        # When bass gets louder, use ATTACK (faster follow).
+        # When bass gets quieter, use RELEASE (slower fade).
+        # That keeps big hits responsive while killing small shimmer.
+        if rms > self.smoothed_rms:
+            alpha = self.attack
+        else:
+            alpha = self.release
+
+        self.smoothed_rms = alpha * self.smoothed_rms + (1.0 - alpha) * rms
 
         # Step 5: convert energy into an 8-bit brightness.
         # Multiply by gain (sensitivity) and by 255 (PWM max).
         intensity = self.smoothed_rms * self.gain * 255
+        intensity = max(0, min(255, int(round(intensity))))
 
-        # Clamp into legal range and cast to int for UDP/ESP32.
-        return max(0, min(255, int(intensity)))
+        # Step 6: deadzone.
+        # If the change is tiny, reuse the previous brightness so the LED
+        # does not visibly flicker on small bass fluctuations.
+        if abs(intensity - self.last_intensity) < self.intensity_deadzone:
+            return self.last_intensity
+
+        self.last_intensity = intensity
+        return intensity
 
     def _to_mono(self, audio_chunk: np.ndarray) -> np.ndarray:
         """

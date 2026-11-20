@@ -64,11 +64,21 @@ BASS_HIGH_HZ = 150
 #   - Decrease GAIN if the LED is maxed out even on quiet songs.
 GAIN = 12.0
 
-# Exponential smoothing amount applied to bass energy over time.
-# Formula used later:
-#   smoothed = SMOOTHING * old + (1 - SMOOTHING) * new
+# Attack / release smoothing (weight kept from the PREVIOUS value).
+# Formula:
+#   smoothed = alpha * old + (1 - alpha) * new
 #
-#   0.0  -> no smoothing (very twitchy / reactive)
-#   0.25 -> mild smoothing (good starting point)
-#   0.8  -> heavy smoothing (slow, floaty feel)
-SMOOTHING = 0.25
+# ATTACK is used when bass is getting louder.
+#   Lower ATTACK  -> snappier punches / kicks
+#   Higher ATTACK -> softer rise
+ATTACK = 0.45
+
+# RELEASE is used when bass is getting quieter.
+#   Higher RELEASE -> slower, smoother fade (less jumpy shimmer)
+#   Lower RELEASE  -> drops faster
+RELEASE = 0.8
+
+# If the new brightness is within this many points of the last one,
+# keep the last value. This hides tiny 1-5 LED flickers from small
+# bass wiggles without blocking big drops/hits.
+INTENSITY_DEADZONE = 1

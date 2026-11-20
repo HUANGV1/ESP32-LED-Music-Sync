@@ -26,13 +26,15 @@ from bass_detection import BassDetector
 
 # Import tunables from config.py so we don't hardcode numbers here.
 from config import (
+    ATTACK,
     BASS_HIGH_HZ,
     BASS_LOW_HZ,
     CHUNK_SIZE,
     ESP32_IP,
     GAIN,
+    INTENSITY_DEADZONE,
+    RELEASE,
     SAMPLE_RATE,
-    SMOOTHING,
     UDP_PORT,
 )
 from udp_sender import UdpSender
@@ -52,7 +54,9 @@ def main() -> None:
         low_hz=BASS_LOW_HZ,
         high_hz=BASS_HIGH_HZ,
         gain=GAIN,
-        smoothing=SMOOTHING,
+        attack=ATTACK,
+        release=RELEASE,
+        intensity_deadzone=INTENSITY_DEADZONE,
     )
 
     # Worker 3: send intensity packets to the ESP32.

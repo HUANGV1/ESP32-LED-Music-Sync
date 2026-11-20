@@ -105,13 +105,19 @@ Press `Ctrl+C` to stop.
 
 ## Tuning
 
-If the LED is too dim, increase `GAIN` in `python/config.py`.  
-If it stays max brightness, decrease `GAIN`.
+Edit values in `python/config.py` (no re-flash needed):
 
-`SMOOTHING` controls how quickly brightness follows the bass:
+- `GAIN`: higher = brighter / more sensitive
+- `ATTACK`: lower = snappier rise on big bass hits
+- `RELEASE`: higher = slower fade, less jumpy on small changes
+- `INTENSITY_DEADZONE`: higher = ignore more tiny brightness flicker
 
-- lower = more twitchy / reactive
-- higher = smoother / slower
+If small fluctuations still look jumpy, try:
+
+```python
+RELEASE = 0.95
+INTENSITY_DEADZONE = 6
+```
 
 ## Quick Checklist
 
