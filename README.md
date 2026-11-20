@@ -120,3 +120,6 @@ If beats are missed, lower `BEAT_MIN_DELTA` or `BEAT_MIN_INTENSITY`.
 - Firmware re-flashed after RGB packet change
 - `ESP32_IP` matches Serial Monitor
 - Music plays through default Windows speaker
+
+## Future Improvements
+- Detect kicks/snares/claps better (right now it only detects bass changes)
