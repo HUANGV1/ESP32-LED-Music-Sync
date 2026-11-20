@@ -1,8 +1,7 @@
-"""
-Process entrypoint: WASAPI capture -> features -> RGB -> UDP.
+"""Process entrypoint: WASAPI capture -> features -> RGB -> UDP.
 
-Owns the realtime loop. Analysis and lighting stay in dedicated modules so
-this file only wires dependencies and handles shutdown.
+The realtime loop is intentionally thin. Signal analysis, lighting behavior,
+and transport each live in their own modules so they can be tuned independently.
 """
 
 from audio_capture import AudioCapture
@@ -11,6 +10,13 @@ from config import (
     ATTACK,
     BASS_HIGH_HZ,
     BASS_LOW_HZ,
+    BEAT_BASELINE_ALPHA,
+    BEAT_COOLDOWN_FRAMES,
+    BEAT_FLASH_DECAY,
+    BEAT_FLASH_INTENSITY,
+    BEAT_MIN_DELTA,
+    BEAT_MIN_INTENSITY,
+    BEAT_THRESHOLD_MULTIPLIER,
     CHUNK_SIZE,
     COLOR_ATTACK,
     COLOR_DEADZONE,
@@ -47,6 +53,11 @@ def main() -> None:
         gain_loudness=GAIN_LOUDNESS,
         attack=ATTACK,
         release=RELEASE,
+        beat_threshold_multiplier=BEAT_THRESHOLD_MULTIPLIER,
+        beat_min_delta=BEAT_MIN_DELTA,
+        beat_min_intensity=BEAT_MIN_INTENSITY,
+        beat_baseline_alpha=BEAT_BASELINE_ALPHA,
+        beat_cooldown_frames=BEAT_COOLDOWN_FRAMES,
     )
 
     lighting = LightingEngine(
@@ -54,6 +65,8 @@ def main() -> None:
         color_release=COLOR_RELEASE,
         color_deadzone=COLOR_DEADZONE,
         loudness_floor=LOUDNESS_FLOOR,
+        beat_flash_intensity=BEAT_FLASH_INTENSITY,
+        beat_flash_decay=BEAT_FLASH_DECAY,
     )
 
     sender = UdpSender(ESP32_IP, UDP_PORT)
@@ -66,8 +79,10 @@ def main() -> None:
             frame = features.get_features(audio_chunk)
             rgb = lighting.get_rgb(frame)
             sender.send_rgb(rgb.red, rgb.green, rgb.blue)
+            beat_marker = " BEAT" if frame.beat else "     "
             print(
-                f"\rRGB {rgb.red:3d},{rgb.green:3d},{rgb.blue:3d}  "
+                f"\rRGB {rgb.red:3d},{rgb.green:3d},{rgb.blue:3d} "
+                f"{beat_marker} "
                 f"(bass {frame.bass:3d} mid {frame.mid:3d} "
                 f"treb {frame.treble:3d} loud {frame.loudness:3d})",
                 end="",

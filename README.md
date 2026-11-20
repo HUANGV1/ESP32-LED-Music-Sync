@@ -1,6 +1,6 @@
 # ESP32 LED Music Sync
 
-This project drives a common-cathode RGB LED from audio playing on a Windows computer. Python analyzes bass, mids, treble, and overall loudness, then sends RGB values over UDP to an ESP32.
+This project drives a common-cathode RGB LED from audio playing on a Windows computer. Python analyzes bass, mids, treble, loudness, and bass onsets, then sends RGB values over UDP to an ESP32.
 
 ## Hardware
 
@@ -16,18 +16,19 @@ This project drives a common-cathode RGB LED from audio playing on a Windows com
 
 1. Windows Python captures system audio with WASAPI loopback.
 2. Audio is split into bass (40-150 Hz), mids (150-2000 Hz), treble (2000-10000 Hz), and full-band loudness.
-3. Features map to RGB: bass -> red, mids -> green, treble -> blue; loudness scales overall brightness.
-4. UDP packets like `120,45,200` go to the ESP32.
-5. ESP32 parses RGB and drives PWM on GPIO 21/22/23.
+3. Bass onset detection watches for sudden bass increases relative to the recent baseline.
+4. Features map to RGB: bass -> red, mids -> green, treble -> blue; loudness scales overall brightness.
+5. Beat events add a short white flash overlay for sharper head-nod pulses.
+6. UDP packets like `120,45,200` go to the ESP32.
+7. ESP32 parses RGB and drives PWM on GPIO 21/22/23.
 
 ## Dev Workflow
 
 - **Arduino IDE** = flash firmware to the ESP32
 - **ESP32** = receive UDP RGB and drive the LED
-- **Cursor + Python** = audio capture, feature extraction, lighting
+- **Cursor + Python** = audio capture, feature extraction, beat detection, lighting
 
-Re-flash the ESP32 when firmware changes (for example after switching to RGB packets).  
-Python-only tuning in `config.py` does not require a re-flash.
+Re-flash the ESP32 when firmware changes. Python-only tuning in `config.py` does not require a re-flash.
 
 ## Setup
 
@@ -66,6 +67,8 @@ cd python
 python main.py
 ```
 
+When beat detection triggers, the terminal prints `BEAT` next to the RGB values.
+
 ### Optional: UDP RGB test (no audio)
 
 ```powershell
@@ -84,9 +87,20 @@ python udp_test.py
 |--------|---------|
 | `GAIN_BASS`, `GAIN_MID`, `GAIN_TREBLE`, `GAIN_LOUDNESS` | Per-band sensitivity |
 | `ATTACK` / `RELEASE` | Band energy smoothing |
+| `BEAT_THRESHOLD_MULTIPLIER` | How much bass must jump relative to baseline |
+| `BEAT_MIN_DELTA` | Minimum bass jump required for a beat |
+| `BEAT_MIN_INTENSITY` | Ignore beat detection below this bass intensity |
+| `BEAT_COOLDOWN_FRAMES` | Minimum spacing between beat flashes |
 | `COLOR_ATTACK` / `COLOR_RELEASE` | Final RGB transition smoothness |
 | `COLOR_DEADZONE` | Ignore tiny RGB flicker |
+| `BEAT_FLASH_INTENSITY` | Brightness added when a beat is detected |
+| `BEAT_FLASH_DECAY` | How quickly the flash fades |
 | `LOUDNESS_FLOOR` | Minimum brightness when the track is quiet |
+
+For sharper jumps, lower `ATTACK` and `COLOR_ATTACK`, or raise `BEAT_FLASH_INTENSITY`.
+
+If too many false beats trigger, raise `BEAT_MIN_DELTA` or `BEAT_THRESHOLD_MULTIPLIER`.
+If beats are missed, lower `BEAT_MIN_DELTA` or `BEAT_MIN_INTENSITY`.
 
 ## Quick Checklist
 
