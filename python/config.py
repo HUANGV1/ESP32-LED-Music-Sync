@@ -1,84 +1,44 @@
 """
-config.py
----------
-Central place for all tunables used by the Python audio engine.
+Runtime tunables for capture, DSP, and lighting.
 
-Why a separate config file?
-  - You can change settings without digging through algorithm code.
-  - main.py, audio_capture.py, and bass_detection.py all import from here.
-  - Keeps "magic numbers" out of the logic files.
+Keep secrets (Wi-Fi) out of this file; only put values that are safe to commit
+and frequently retuned while iterating on visual response.
 """
 
-# ============================================================
-# NETWORK SETTINGS
-# ============================================================
-
-# IP address of your ESP32 on your local Wi-Fi network.
-# Find this in Arduino Serial Monitor after the ESP32 connects.
-# Example Serial output: "ESP32 IP address: 192.168.1.105"
+# --- Network -----------------------------------------------------------------
 ESP32_IP = "192.168.2.181"
+UDP_PORT = 4210  # must match firmware
 
-# UDP port the ESP32 is listening on.
-# Must match UDP_PORT in the Arduino firmware exactly.
-UDP_PORT = 4210
-
-
-# ============================================================
-# AUDIO CAPTURE SETTINGS
-# ============================================================
-
-# How many audio samples per second to capture from Windows.
-# 44100 Hz is CD-quality and works well for music.
-# Higher = more detail but more CPU work.
+# --- Capture -----------------------------------------------------------------
 SAMPLE_RATE = 44100
+CHUNK_SIZE = 2048  # ~46 ms @ 44.1 kHz; lower latency vs noisier RMS tradeoff
 
-# How many samples we process in one batch ("chunk").
-# 2048 samples at 44100 Hz is about 46 milliseconds of audio:
-#   2048 / 44100 ≈ 0.046 seconds
-# Smaller chunks = faster reaction, but noisier measurements.
-# Larger chunks = smoother, but more lag.
-CHUNK_SIZE = 2048
-
-
-# ============================================================
-# BASS FILTER SETTINGS
-# ============================================================
-
-# Lowest bass frequency we want to keep (in Hertz).
-# Kick drums and deep bass usually start around here.
+# --- Band edges (Hz) ---------------------------------------------------------
 BASS_LOW_HZ = 40
-
-# Highest bass frequency we want to keep (in Hertz).
-# Above this, vocals / snares / cymbals start to dominate.
-# Together, 40-150 Hz is a classic "bass energy" window.
 BASS_HIGH_HZ = 150
 
+MID_LOW_HZ = 150
+MID_HIGH_HZ = 2000
 
-# ============================================================
-# OUTPUT TUNING
-# ============================================================
+TREBLE_LOW_HZ = 2000
+TREBLE_HIGH_HZ = 10000  # clamped under Nyquist in the analyzer
 
-# Multiplies the measured bass energy before converting to 0-255.
-# Think of this as LED sensitivity:
-#   - Increase GAIN if the LED barely lights up during loud songs.
-#   - Decrease GAIN if the LED is maxed out even on quiet songs.
-GAIN = 12.0
+# --- Band gains --------------------------------------------------------------
+# Applied after RMS; raise a band if that channel looks chronically dim.
+GAIN_BASS = 12.0
+GAIN_MID = 10.0
+GAIN_TREBLE = 14.0
+GAIN_LOUDNESS = 8.0
 
-# Attack / release smoothing (weight kept from the PREVIOUS value).
-# Formula:
-#   smoothed = alpha * old + (1 - alpha) * new
-#
-# ATTACK is used when bass is getting louder.
-#   Lower ATTACK  -> snappier punches / kicks
-#   Higher ATTACK -> softer rise
+# Shared envelope for band/loudness RMS (weight retained from previous sample).
 ATTACK = 0.45
+RELEASE = 0.80
 
-# RELEASE is used when bass is getting quieter.
-#   Higher RELEASE -> slower, smoother fade (less jumpy shimmer)
-#   Lower RELEASE  -> drops faster
-RELEASE = 0.8
+# --- Display-stage RGB -------------------------------------------------------
+# Separate from band envelopes so hue can settle without retuning kick response.
+COLOR_ATTACK = 0.55
+COLOR_RELEASE = 0.88
+COLOR_DEADZONE = 3
 
-# If the new brightness is within this many points of the last one,
-# keep the last value. This hides tiny 1-5 LED flickers from small
-# bass wiggles without blocking big drops/hits.
-INTENSITY_DEADZONE = 1
+# Maps loudness∈[0,1] into [LOUDNESS_FLOOR, 1] before scaling RGB.
+LOUDNESS_FLOOR = 0.12

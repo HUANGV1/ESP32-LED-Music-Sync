@@ -1,99 +1,84 @@
 """
-main.py
--------
-Entry point for the Windows-side audio engine.
+Process entrypoint: WASAPI capture -> features -> RGB -> UDP.
 
-Big picture loop:
-  Windows audio out
-       |
-       v
-  AudioCapture  -> grabs live speaker audio chunks
-       |
-       v
-  BassDetector  -> turns each chunk into intensity 0..255
-       |
-       v
-  UdpSender     -> sends that number to the ESP32 over Wi-Fi
-       |
-       v
-  ESP32 firmware -> drives the RGB LED with PWM
+Owns the realtime loop. Analysis and lighting stay in dedicated modules so
+this file only wires dependencies and handles shutdown.
 """
 
-# Import our project modules.
-# These live in the same python/ folder.
 from audio_capture import AudioCapture
-from bass_detection import BassDetector
-
-# Import tunables from config.py so we don't hardcode numbers here.
+from audio_features import AudioFeatureExtractor
 from config import (
     ATTACK,
     BASS_HIGH_HZ,
     BASS_LOW_HZ,
     CHUNK_SIZE,
+    COLOR_ATTACK,
+    COLOR_DEADZONE,
+    COLOR_RELEASE,
     ESP32_IP,
-    GAIN,
-    INTENSITY_DEADZONE,
+    GAIN_BASS,
+    GAIN_LOUDNESS,
+    GAIN_MID,
+    GAIN_TREBLE,
+    LOUDNESS_FLOOR,
+    MID_HIGH_HZ,
+    MID_LOW_HZ,
     RELEASE,
     SAMPLE_RATE,
+    TREBLE_HIGH_HZ,
+    TREBLE_LOW_HZ,
     UDP_PORT,
 )
+from lighting_engine import LightingEngine
 from udp_sender import UdpSender
 
 
 def main() -> None:
-    """
-    Create the three workers, then run the forever processing loop.
-    """
-
-    # Worker 1: capture live system audio from the default speaker.
     capture = AudioCapture(SAMPLE_RATE, CHUNK_SIZE)
 
-    # Worker 2: extract bass energy and convert it to 0..255.
-    detector = BassDetector(
+    features = AudioFeatureExtractor(
         sample_rate=SAMPLE_RATE,
-        low_hz=BASS_LOW_HZ,
-        high_hz=BASS_HIGH_HZ,
-        gain=GAIN,
+        bass_range=(BASS_LOW_HZ, BASS_HIGH_HZ),
+        mid_range=(MID_LOW_HZ, MID_HIGH_HZ),
+        treble_range=(TREBLE_LOW_HZ, TREBLE_HIGH_HZ),
+        gain_bass=GAIN_BASS,
+        gain_mid=GAIN_MID,
+        gain_treble=GAIN_TREBLE,
+        gain_loudness=GAIN_LOUDNESS,
         attack=ATTACK,
         release=RELEASE,
-        intensity_deadzone=INTENSITY_DEADZONE,
     )
 
-    # Worker 3: send intensity packets to the ESP32.
+    lighting = LightingEngine(
+        color_attack=COLOR_ATTACK,
+        color_release=COLOR_RELEASE,
+        color_deadzone=COLOR_DEADZONE,
+        loudness_floor=LOUDNESS_FLOOR,
+    )
+
     sender = UdpSender(ESP32_IP, UDP_PORT)
 
-    print(f"Sending bass intensity to {ESP32_IP}:{UDP_PORT}")
+    print(f"Sending RGB to {ESP32_IP}:{UDP_PORT}")
     print("Press Ctrl+C to stop.")
 
     try:
-        # capture.chunks() is an infinite generator.
-        # Each loop iteration gets the next ~46 ms of audio.
         for audio_chunk in capture.chunks():
-            # Analyze this chunk and get a brightness value.
-            intensity = detector.get_intensity(audio_chunk)
-
-            # Send that brightness to the ESP32 immediately.
-            sender.send_intensity(intensity)
-
-            # Print on one updating line:
-            # \r returns the cursor to the start of the line
-            # :3d prints the number in a 3-character-wide field
-            # end="" avoids adding a newline each time
-            print(f"\rBass intensity: {intensity:3d}", end="")
-
+            frame = features.get_features(audio_chunk)
+            rgb = lighting.get_rgb(frame)
+            sender.send_rgb(rgb.red, rgb.green, rgb.blue)
+            print(
+                f"\rRGB {rgb.red:3d},{rgb.green:3d},{rgb.blue:3d}  "
+                f"(bass {frame.bass:3d} mid {frame.mid:3d} "
+                f"treb {frame.treble:3d} loud {frame.loudness:3d})",
+                end="",
+            )
     except KeyboardInterrupt:
-        # User pressed Ctrl+C. Exit the loop cleanly.
         print("\nStopping.")
-
     finally:
-        # Always runs, whether we quit normally or via Ctrl+C.
-        # Turn the LED off and free the network socket.
-        sender.send_intensity(0)
+        # Guarantee blackout even if capture/send raises mid-frame.
+        sender.send_rgb(0, 0, 0)
         sender.close()
 
 
-# Python sets __name__ to "__main__" only when you run this file directly:
-#   python main.py
-# That prevents main() from auto-running if another file imports this module.
 if __name__ == "__main__":
     main()
