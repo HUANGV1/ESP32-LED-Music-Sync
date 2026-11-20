@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+
+.vscode/
+.idea/
+
+*.log
+*.tmp
+
+# Private Wi-Fi credentials (keep secrets.h.example in git)
+firmware/esp32_bass_led/LEDC_PWM/secrets.h
