@@ -17,7 +17,9 @@ This project drives a common-cathode RGB LED from audio playing on a Windows com
 1. Windows Python captures system audio with WASAPI loopback.
 2. Audio is split into bass (40-150 Hz), mids (150-2000 Hz), treble (2000-10000 Hz), and full-band loudness.
 3. Bass onset detection watches for sudden bass increases relative to the recent baseline.
-4. Features map to RGB: bass -> red, mids -> green, treble -> blue; loudness scales overall brightness.
+4. Lighting mode chooses base color:
+   - `bands`: bass -> red, mids -> green, treble -> blue
+   - `flow`: hue slowly cycles through colors; loudness + beat still apply
 5. Beat events add a short white flash overlay for sharper head-nod pulses.
 6. UDP packets like `120,45,200` go to the ESP32.
 7. ESP32 parses RGB and drives PWM on GPIO 21/22/23.
@@ -85,6 +87,9 @@ python udp_test.py
 
 | Setting | Purpose |
 |--------|---------|
+| `LIGHTING_MODE` | `"bands"` or `"flow"` |
+| `COLOR_FLOW_SPEED` | Hue degrees/second in flow mode |
+| `FLOW_BRIGHTNESS_CEILING` | Caps flow baseline brightness so beat boosts stay on-hue |
 | `GAIN_BASS`, `GAIN_MID`, `GAIN_TREBLE`, `GAIN_LOUDNESS` | Per-band sensitivity |
 | `ATTACK` / `RELEASE` | Band energy smoothing |
 | `BEAT_THRESHOLD_MULTIPLIER` | How much bass must jump relative to baseline |
@@ -93,9 +98,16 @@ python udp_test.py
 | `BEAT_COOLDOWN_FRAMES` | Minimum spacing between beat flashes |
 | `COLOR_ATTACK` / `COLOR_RELEASE` | Final RGB transition smoothness |
 | `COLOR_DEADZONE` | Ignore tiny RGB flicker |
-| `BEAT_FLASH_INTENSITY` | Brightness added when a beat is detected |
+| `BEAT_FLASH_INTENSITY` | On-hue brightness boost (`1 + intensity/100`) |
 | `BEAT_FLASH_DECAY` | How quickly the flash fades |
 | `LOUDNESS_FLOOR` | Minimum brightness when the track is quiet |
+
+Switch modes in `python/config.py`:
+
+```python
+LIGHTING_MODE = "flow"   # or "bands"
+COLOR_FLOW_SPEED = 40.0  # higher = faster rainbow cycle
+```
 
 For sharper jumps, lower `ATTACK` and `COLOR_ATTACK`, or raise `BEAT_FLASH_INTENSITY`.
 

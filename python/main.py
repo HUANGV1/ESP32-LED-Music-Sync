@@ -20,12 +20,15 @@ from config import (
     CHUNK_SIZE,
     COLOR_ATTACK,
     COLOR_DEADZONE,
+    COLOR_FLOW_SPEED,
     COLOR_RELEASE,
     ESP32_IP,
+    FLOW_BRIGHTNESS_CEILING,
     GAIN_BASS,
     GAIN_LOUDNESS,
     GAIN_MID,
     GAIN_TREBLE,
+    LIGHTING_MODE,
     LOUDNESS_FLOOR,
     MID_HIGH_HZ,
     MID_LOW_HZ,
@@ -60,18 +63,25 @@ def main() -> None:
         beat_cooldown_frames=BEAT_COOLDOWN_FRAMES,
     )
 
+    # Frame duration drives how many hue degrees advance per chunk in flow mode.
+    frame_seconds = CHUNK_SIZE / float(SAMPLE_RATE)
+
     lighting = LightingEngine(
+        mode=LIGHTING_MODE,
+        color_flow_speed=COLOR_FLOW_SPEED,
+        frame_seconds=frame_seconds,
         color_attack=COLOR_ATTACK,
         color_release=COLOR_RELEASE,
         color_deadzone=COLOR_DEADZONE,
         loudness_floor=LOUDNESS_FLOOR,
+        flow_brightness_ceiling=FLOW_BRIGHTNESS_CEILING,
         beat_flash_intensity=BEAT_FLASH_INTENSITY,
         beat_flash_decay=BEAT_FLASH_DECAY,
     )
 
     sender = UdpSender(ESP32_IP, UDP_PORT)
 
-    print(f"Sending RGB to {ESP32_IP}:{UDP_PORT}")
+    print(f"Sending RGB to {ESP32_IP}:{UDP_PORT}  mode={LIGHTING_MODE}")
     print("Press Ctrl+C to stop.")
 
     try:
